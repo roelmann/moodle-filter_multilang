@@ -42,7 +42,13 @@ defined('MOODLE_INTERNAL') || die();
 class filter_multilang extends moodle_text_filter {
     function filter($text, array $options = array()) {
         global $CFG;
-
+        
+        if (isset($options['lang'])) {
+			$opt_lang = $options['lang'];
+		} else {
+			$opt_lang = null;
+		}
+        
         // [pj] I don't know about you but I find this new implementation funny :P
         // [skodak] I was laughing while rewriting it ;-)
         // [nicolasconnault] Should support inverted attributes: <span class="multilang" lang="en"> (Doesn't work curently)
@@ -61,7 +67,9 @@ $search = '/(<(?:lang|div|span) lang="[a-zA-Z0-9_-]*".*?>.*?<\/(?:lang|div|span)
 }
 
 
-        $result = preg_replace_callback($search, 'filter_multilang_impl', $text);
+        $result = preg_replace_callback($search, function($langblock) use ($opt_lang) {
+			return filter_multilang_impl($langblock, $opt_lang);
+		}, $text);
 
         if (is_null($result)) {
             return $text; //error during regex processing (too many nested spans?)
@@ -74,7 +82,12 @@ $search = '/(<(?:lang|div|span) lang="[a-zA-Z0-9_-]*".*?>.*?<\/(?:lang|div|span)
 function filter_multilang_impl($langblock) {
     global $CFG;
 
-    $mylang = current_language();
+    if (isset($opt_lang) && $opt_lang!='') {
+		$mylang = $opt_lang;
+	} else {
+		$mylang = current_language(); //original string
+	}
+	
     static $parentcache;
     if (!isset($parentcache)) {
         $parentcache = array();
